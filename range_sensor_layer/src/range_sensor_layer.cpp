@@ -5,6 +5,8 @@
 PLUGINLIB_EXPORT_CLASS(range_sensor_layer::RangeSensorLayer, costmap_2d::Layer)
 
 using costmap_2d::NO_INFORMATION;
+using costmap_2d::LETHAL_OBSTACLE;
+using costmap_2d::FREE_SPACE;
 
 namespace range_sensor_layer
 {
@@ -301,11 +303,16 @@ void RangeSensorLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i
     {
       unsigned char prob = costmap_[it];
       unsigned char current;
-      if(prob>mark)
-        current = costmap_2d::LETHAL_OBSTACLE;
-      else if(prob<clear)
-        current = costmap_2d::FREE_SPACE;
-      else{
+      if((prob > mark) && (prob < NO_INFORMATION))
+      {
+        current = LETHAL_OBSTACLE;
+      }
+      else if(prob < clear)
+      {
+        current = FREE_SPACE;
+      }
+      else
+      {
         it++;
         continue;
       }
@@ -313,7 +320,9 @@ void RangeSensorLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i
       unsigned char old_cost = master_array[it];
 
       if (old_cost == NO_INFORMATION || old_cost < current)
+      {
         master_array[it] = current;
+      }
       it++;
     }
   }
