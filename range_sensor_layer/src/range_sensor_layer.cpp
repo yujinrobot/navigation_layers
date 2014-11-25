@@ -1,4 +1,4 @@
-#include<range_sensor_layer/range_sensor_layer.h>
+#include <range_sensor_layer/range_sensor_layer.h>
 #include <pluginlib/class_list_macros.h>
 #include <angles/angles.h>
 
@@ -139,13 +139,35 @@ void RangeSensorLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config, ui
 
 void RangeSensorLayer::incomingRange(const sensor_msgs::RangeConstPtr& range)
 {
-  double r = range->range;
+  boost::mutex::scoped_lock lock(range_message_mutex_);
+  range_msgs_buffer_.push_back(*range);
+}
+
+void RangeSensorLayer::updateCostmap()
+{
+  std::list<sensor_msgs::Range> range_msgs_buffer_copy;
+
+  range_message_mutex_.lock();
+  range_msgs_buffer_copy = std::list<sensor_msgs::Range>(range_msgs_buffer_);
+  range_msgs_buffer_.clear();
+  range_message_mutex_.unlock();
+
+  for (std::list<sensor_msgs::Range>::iterator range_msgs_it = range_msgs_buffer_copy.begin();
+      range_msgs_it != range_msgs_buffer_copy.end(); range_msgs_it++)
+  {
+    updateCostmap(*range_msgs_it);
+  }
+}
+
+void RangeSensorLayer::updateCostmap(sensor_msgs::Range& range_message)
+{
+  double r = range_message.range;
 
   bool clear_sensor_cone = false;
 
   bool isFixedDistanceRanger = false;
 
-  if (range->min_range == range->max_range)
+  if (range_message.min_range == range_message.max_range)
     isFixedDistanceRanger = true;
 
   if (isFixedDistanceRanger)
@@ -154,7 +176,7 @@ void RangeSensorLayer::incomingRange(const sensor_msgs::RangeConstPtr& range)
     {
       ROS_WARN(
           "Fixed distance ranger (min_range == max_range) in frame %s sent invalid value. Only -Inf (== object detected) and Inf (== no object detected) are valid.",
-          range->header.frame_id.c_str());
+          range_message.header.frame_id.c_str());
       return;
     }
 
@@ -165,19 +187,19 @@ void RangeSensorLayer::incomingRange(const sensor_msgs::RangeConstPtr& range)
       clear_sensor_cone = true;
     else
       //-inf
-      r = range->min_range;
+      r = range_message.min_range;
   }
-  else if (r < range->min_range || r > range->max_range)
+  else if (r < range_message.min_range || r > range_message.max_range)
     return;
 
-  if (r == range->max_range && clear_on_max_reading_ && !isFixedDistanceRanger)
+  if (r == range_message.max_range && clear_on_max_reading_ && !isFixedDistanceRanger)
     clear_sensor_cone = true;
 
-  max_angle_ = range->field_of_view / 2;
+  max_angle_ = range_message.field_of_view / 2;
 
   geometry_msgs::PointStamped in, out;
-  in.header.stamp = range->header.stamp;
-  in.header.frame_id = range->header.frame_id;
+  in.header.stamp = range_message.header.stamp;
+  in.header.frame_id = range_message.header.frame_id;
 
   if (!tf_->waitForTransform(global_frame_, in.header.frame_id, in.header.stamp, ros::Duration(0.1)))
   {
@@ -294,6 +316,8 @@ void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot
 
   if (layered_costmap_->isRolling())
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
+
+  updateCostmap();
 
   *min_x = std::min(*min_x, min_x_);
   *min_y = std::min(*min_y, min_y_);
