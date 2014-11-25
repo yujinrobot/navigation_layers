@@ -14,7 +14,10 @@ CATKIN_DEPENDS sensor_msgs
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_library(${PROJECT_NAME} src/range_sensor_layer.cpp)
+add_library(${PROJECT_NAME}
+  src/extended_range_sensor_layer.cpp
+  src/range_sensor_layer.cpp
+)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 install(TARGETS range_sensor_layer
