@@ -163,9 +163,8 @@ void RangeSensorLayer::incomingRange(const sensor_msgs::RangeConstPtr& range)
 
     if (r > 0) //+inf
       clear_sensor_cone = true;
-    else
-      //-inf
-      r = range->min_range;
+
+    r = range->min_range;
   }
   else if (r < range->min_range || r > range->max_range)
     return;
