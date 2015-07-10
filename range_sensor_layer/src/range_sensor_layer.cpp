@@ -139,6 +139,8 @@ void RangeSensorLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config, ui
 
 void RangeSensorLayer::incomingRange(const sensor_msgs::RangeConstPtr& range)
 {
+  if (!enabled_) { return; }
+
   double r = range->range;
 
   bool clear_sensor_cone = false;
@@ -245,9 +247,9 @@ void RangeSensorLayer::incomingRange(const sensor_msgs::RangeConstPtr& range)
   bx1 = std::min((int)size_x_, bx1);
   by1 = std::min((int)size_y_, by1);
 
-  for (unsigned int x = bx0; x <= (unsigned int)bx1; x++)
+  for (unsigned int x = bx0; x <= std::abs(bx1); x++)
   {
-    for (unsigned int y = by0; y <= (unsigned int)by1; y++)
+    for (unsigned int y = by0; y <= std::abs(by1); y++)
     {
       double wx, wy;
       mapToWorld(x, y, wx, wy);
