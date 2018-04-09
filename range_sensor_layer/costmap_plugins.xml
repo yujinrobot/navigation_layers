@@ -2,7 +2,4 @@
   <class type="range_sensor_layer::RangeSensorLayer" base_class_type="costmap_2d::Layer">
     <description>A range-sensor (sonar, IR) based obstacle layer for costmap_2d</description>
   </class>
-  <class type="range_sensor_layer::ExtendedRangeSensorLayer" base_class_type="costmap_2d::Layer">
-    <description>Same as RangeSensorLayer but can also subscribe to other layers for updates.</description>
-  </class>
 </library>
